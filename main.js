@@ -5,16 +5,10 @@ var mesh = {};
 
 window.onload = function() {
     var sphModel = document.getElementById('sphereobj').innerHTML;
-    // console.log("sphere: ", sphModel);
     mesh = new OBJ.Mesh(sphModel);
-    OBJ.initMeshBuffers(gl, mesh);
+    main();
 };
 
-main();
-
-//
-// Start here
-//
 function main() {
   const canvas = document.querySelector('#glcanvas');
   gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -59,7 +53,6 @@ function main() {
     program: shaderProgram,
     attribLocations: {
       vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-      vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
@@ -89,19 +82,18 @@ function main() {
 
 function initBuffers(gl) {
 
+  var layout = new OBJ.Layout(
+      OBJ.Layout.POSITION
+  );
+
+
   const positionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  const positions = mesh.vertexBuffer;
-  console.log("mesh: ", mesh.vertexBuffer);
-
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
+  gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
 
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  const indices = mesh.indexBuffer;
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
-      new Uint16Array(indices), gl.STATIC_DRAW);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
 
   return {
     position: positionBuffer,
@@ -201,7 +193,7 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
       modelViewMatrix);
 
   {
-    const vertexCount = mesh.vertexBuffer.numItems;
+    const vertexCount = mesh.indices.length;
     const type = gl.UNSIGNED_SHORT;
     const offset = 0;
     gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
