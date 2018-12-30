@@ -6,6 +6,7 @@ var mesh = {};
 window.onload = function() {
     var sphModel = document.getElementById('sphereobj').innerHTML;
     mesh = new OBJ.Mesh(sphModel);
+    console.log("vertices: ", mesh.vertices);
     main();
 };
 
@@ -23,13 +24,13 @@ function main() {
   // Vertex shader program
 
   const vsSource = `
-    attribute vec4 aVertexPosition;
+    attribute vec3 aVertexPosition;
 
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
     void main(void) {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+      gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
     }
   `;
 
@@ -37,7 +38,7 @@ function main() {
 
   const fsSource = `
     void main(void) {
-      gl_FragColor = vec4(1);
+      gl_FragColor = vec4(1.0,0.0,0,1);
     }
   `;
 
@@ -82,18 +83,13 @@ function main() {
 
 function initBuffers(gl) {
 
-  var layout = new OBJ.Layout(
-      OBJ.Layout.POSITION
-  );
-
-
   const positionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.vertices), gl.STATIC_DRAW);
 
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(mesh.indices), gl.STATIC_DRAW);
 
   return {
     position: positionBuffer,
@@ -144,18 +140,7 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 
   mat4.translate(modelViewMatrix,     // destination matrix
                  modelViewMatrix,     // matrix to translate
-                 [-0.0, 0.0, -6.0]);  // amount to translate
-  mat4.rotate(modelViewMatrix,  // destination matrix
-              modelViewMatrix,  // matrix to rotate
-              cubeRotation,     // amount to rotate in radians
-              [0, 0, 1]);       // axis to rotate around (Z)
-  mat4.rotate(modelViewMatrix,  // destination matrix
-              modelViewMatrix,  // matrix to rotate
-              cubeRotation * .7,// amount to rotate in radians
-              [0, 1, 0]);       // axis to rotate around (X)
-
-  // Tell WebGL how to pull out the positions from the position
-  // buffer into the vertexPosition attribute
+                 [-0.0, 0.0, -10.0]);  // amount to translate
   {
     const numComponents = 3;
     const type = gl.FLOAT;
@@ -163,6 +148,8 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
     const stride = 0;
     const offset = 0;
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+    gl.enableVertexAttribArray(
+        programInfo.attribLocations.vertexPosition);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexPosition,
         numComponents,
@@ -170,8 +157,6 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
         normalize,
         stride,
         offset);
-    gl.enableVertexAttribArray(
-        programInfo.attribLocations.vertexPosition);
   }
 
   // Tell WebGL which indices to use to index the vertices
@@ -200,8 +185,7 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
   }
 
   // Update the rotation for the next draw
-
-  cubeRotation += deltaTime;
+  // cubeRotation += deltaTime;
 }
 
 //
@@ -221,7 +205,7 @@ function initShaderProgram(gl, vsSource, fsSource) {
   // If creating the shader program failed, alert
 
   if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+    console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
     return null;
   }
 
@@ -246,7 +230,7 @@ function loadShader(gl, type, source) {
   // See if it compiled successfully
 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+    console.log('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     return null;
   }
