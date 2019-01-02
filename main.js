@@ -3,13 +3,13 @@ var gl = {};
 var mesh = {};
 
 
-vec3 camPos = vec3(0,0,0);
+var camPos = vec3.create();
 var metallic = 1.0;
 var roughness = 0.5;
-vec3 lightPosition = vec3(0, 1.0, 0);
-vec3 lightColor = vec3(0, 1.0, 0);
+var lightPosition = vec3.fromValues(0, 1.0, 0);
+var lightColor = vec3.fromValues(0, 1.0, 0);
 var ao = 1.0;
-vec3 albedo = vec3(1.0, 0, 0);
+var albedo = vec3.fromValues(1.0, 0, 0);
 
 window.onload = function() {
     var sphModel = document.getElementById('sphereobj').innerHTML;
@@ -35,8 +35,8 @@ function main() {
     attribute vec3 aVertexPosition;
     attribute vec3 aVertexNormal;
 
-    out vec3 WorldPos;
-    out vec3 Normal;
+    varying highp vec3 WorldPos;
+    varying highp vec3 Normal;
 
     uniform mat4 uNormalMatrix;
     uniform mat4 uModelViewMatrix;
@@ -54,8 +54,8 @@ function main() {
   const fsSource = `
 
   // in vec2 TexCoords;
-  in vec3 WorldPos;
-  in vec3 Normal;
+  varying highp vec3 WorldPos;
+  varying highp vec3 Normal;
 
   uniform vec3 camPos;
 
