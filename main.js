@@ -1,7 +1,15 @@
 var cubeRotation = 0.0;
 var gl = {};
-
 var mesh = {};
+
+
+vec3 camPos = vec3(0,0,0);
+var metallic = 1.0;
+var roughness = 0.5;
+vec3 lightPosition = vec3(0, 1.0, 0);
+vec3 lightColor = vec3(0, 1.0, 0);
+var ao = 1.0;
+vec3 albedo = vec3(1.0, 0, 0);
 
 window.onload = function() {
     var sphModel = document.getElementById('sphereobj').innerHTML;
@@ -25,11 +33,18 @@ function main() {
 
   const vsSource = `
     attribute vec3 aVertexPosition;
+    attribute vec3 aVertexNormal;
 
+    out vec3 WorldPos;
+    out vec3 Normal;
+
+    uniform mat4 uNormalMatrix;
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
     void main(void) {
+      WorldPos = (uModelViewMatrix * vec4(aVertexPosition, 1.0)).xyz;
+      Normal = (uNormalMatrix * vec4(aVertexNormal, 1.0)).xyz;
       gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
     }
   `;
@@ -37,6 +52,20 @@ function main() {
   // Fragment shader program
 
   const fsSource = `
+
+  // in vec2 TexCoords;
+  in vec3 WorldPos;
+  in vec3 Normal;
+
+  uniform vec3 camPos;
+
+  uniform vec3  albedo;
+  uniform float metallic;
+  uniform float roughness;
+  uniform float ao;
+
+  uniform vec3 lightPosition;
+  uniform vec3 lightColor;
 
     //specular components
 
@@ -82,21 +111,6 @@ function main() {
 
         return ggx1 * ggx2;
     }
-
-
-    // in vec2 TexCoords;
-    in vec3 WorldPos;
-    in vec3 Normal;
-
-    uniform vec3 camPos;
-
-    uniform vec3  albedo;
-    uniform float metallic;
-    uniform float roughness;
-    uniform float ao;
-
-    uniform vec3 lightPosition;
-    uniform vec3 lightColor;
 
     void main(void) {
 
@@ -167,8 +181,17 @@ function main() {
     program: shaderProgram,
     attribLocations: {
       vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+      vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
     },
     uniformLocations: {
+      lightPosition: gl.getUniformLocation(shaderSource, 'lightPosition'),
+      lightColor: gl.getUniformLocation(shaderSource, 'lightColor'),
+      albedo: gl.getUniformLocation(shaderSource, 'albedo'),
+      ao: gl.getUniformLocation(shaderSource, 'ao'),
+      roughness: gl.getUniformLocation(shaderProgram, 'roughness'),
+      metallic: gl.getUniformLocation(shaderProgram, 'metallic'),
+      cameraPosition: gl.getUniformLocation(shaderProgram, 'camPos'),
+      normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
       modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
     },
@@ -200,12 +223,21 @@ function initBuffers(gl) {
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.vertices), gl.STATIC_DRAW);
 
+
+  const normalBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.normals),
+              gl.STATIC_DRAW);
+
+  console.log("normals: ", mesh.normals);
+
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(mesh.indices), gl.STATIC_DRAW);
 
   return {
     position: positionBuffer,
+    normal: normalBuffer,
     indices: indexBuffer,
   };
 }
@@ -254,6 +286,12 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
   mat4.translate(modelViewMatrix,     // destination matrix
                  modelViewMatrix,     // matrix to translate
                  [-0.0, 0.0, -10.0]);  // amount to translate
+
+  const normalMatrix = mat4.create();
+  mat4.invert(normalMatrix, modelViewMatrix);
+  mat4.transpose(normalMatrix, normalMatrix);
+
+
   {
     const numComponents = 3;
     const type = gl.FLOAT;
@@ -272,6 +310,24 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
         offset);
   }
 
+  {
+    const numComponents = 3;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    const offset = 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+    gl.enableVertexAttribArray(
+        programInfo.attribLocations.vertexNormal);
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexNormal,
+        numComponents,
+        type,
+        normalize,
+        stride,
+        offset);
+  }
+
   // Tell WebGL which indices to use to index the vertices
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
 
@@ -281,6 +337,20 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 
   // Set the shader uniforms
 
+
+  gl.uniform3fv(programInfo.uniformLocations.lightPosition, 1, lightPosition);
+  gl.uniform3fv(programInfo.uniformLocations.lightColor, 1, lightColor);
+  gl.uniform3fv(programInfo.uniformLocations.albedo, 1, albedo);
+  gl.uniform1f(programInfo.uniformLocations.ao, ao);
+  gl.uniform1f(programInfo.uniformLocations.metallic, metallic);
+  gl.uniform1f(programInfo.uniformLocations.roughness, roughness);
+  gl.uniform3fv( programInfo.uniformLocations.cameraPosition, 1, camPos);
+
+  gl.uniformMatrix4fv(
+    programInfo.uniformLocations.normalMatrix,
+    false,
+    normalMatrix
+  );
   gl.uniformMatrix4fv(
       programInfo.uniformLocations.projectionMatrix,
       false,
