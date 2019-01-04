@@ -5,11 +5,11 @@ var mesh = {};
 
 var camPos = vec3.create();
 var metallic = 1.0;
-var roughness = 0.5;
-var lightPosition = vec3.fromValues(0, 1.0, 0);
+var roughness = 0.0;
+var lightPosition = vec3.fromValues(0, 0.5, 5);
 var lightColor = vec3.fromValues(0, 1.0, 0);
 var ao = 1.0;
-var albedo = vec3.fromValues(1.0, 0, 0);
+var albedo = vec3.fromValues(1.0, 1.0, 1.0);
 
 window.onload = function() {
     var sphModel = document.getElementById('sphereobj').innerHTML;
@@ -35,8 +35,8 @@ function main() {
     attribute vec3 aVertexPosition;
     attribute vec3 aVertexNormal;
 
-    varying highp vec3 WorldPos;
-    varying highp vec3 Normal;
+    varying mediump vec3 WorldPos;
+    varying mediump vec3 Normal;
 
     uniform mat4 uNormalMatrix;
     uniform mat4 uModelViewMatrix;
@@ -54,112 +54,112 @@ function main() {
   const fsSource = `
 
   // in vec2 TexCoords;
-  varying highp vec3 WorldPos;
-  varying highp vec3 Normal;
+  varying mediump vec3 WorldPos;
+  varying mediump vec3 Normal;
 
-  uniform vec3 camPos;
+  uniform mediump vec3 camPos;
 
-  uniform vec3  albedo;
-  uniform float metallic;
-  uniform float roughness;
-  uniform float ao;
+  uniform mediump vec3  albedo;
+  uniform mediump float metallic;
+  uniform mediump float roughness;
+  uniform mediump float ao;
 
-  uniform vec3 lightPosition;
-  uniform vec3 lightColor;
+  uniform mediump vec3 lightPosition;
+  uniform mediump vec3 lightColor;
+
+  mediump float PI = 3.14159265359;
 
     //specular components
 
     //fresnel/specular fraction (or the fraction of light that gets reflected)
-    vec3 fresnelSchlick(float cosTheta, vec3 F0)
+    mediump vec3 fresnelSchlick(mediump float cosTheta, mediump vec3 F0)
     {
       return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
     }
 
     //normal distribution, depends on roughness of the material.
     //also, proportional to the alignment of microfacets to the half vector
-    float DistributionGGX(vec3 N, vec3 H, float roughness)
+    mediump float DistributionGGX(mediump vec3 N, mediump vec3 H, mediump float roughness)
     {
-        float a      = roughness*roughness;
-        float a2     = a*a;
-        float NdotH  = max(dot(N, H), 0.0);
-        float NdotH2 = NdotH*NdotH;
+        mediump float a1      = roughness*roughness;
+        mediump float a2     = a1 * a1;
+        mediump float NdotH  = max(dot(N, H), 0.0);
+        mediump float NdotH2 = NdotH*NdotH;
 
-        float num   = a2;
-        float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+        mediump float num   = a2;
+        mediump float denom = (NdotH2 * (a2 - 1.0) + 1.0);
         denom = PI * denom * denom;
 
         return num / denom;
     }
 
     //self occlusion due to the roughness of the material
-    float GeometrySchlickGGX(float NdotV, float roughness)
+    mediump float GeometrySchlickGGX(mediump float NdotV,mediump float roughness)
     {
-        float r = (roughness + 1.0);
-        float k = (r*r) / 8.0;
+        mediump float r = (roughness + 1.0);
+        mediump float k = (r*r) / 8.0;
 
-        float num   = NdotV;
-        float denom = NdotV * (1.0 - k) + k;
+        mediump float num   = NdotV;
+        mediump float denom = NdotV * (1.0 - k) + k;
 
         return num / denom;
     }
-    float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+    mediump float GeometrySmith(mediump vec3 N,mediump vec3 V, mediump vec3 L, mediump float roughness)
     {
-        float NdotV = max(dot(N, V), 0.0);
-        float NdotL = max(dot(N, L), 0.0);
-        float ggx2  = GeometrySchlickGGX(NdotV, roughness);
-        float ggx1  = GeometrySchlickGGX(NdotL, roughness);
+        mediump float NdotV = max(dot(N, V), 0.0);
+        mediump float NdotL = max(dot(N, L), 0.0);
+        mediump float ggx2  = GeometrySchlickGGX(NdotV, roughness);
+        mediump float ggx1  = GeometrySchlickGGX(NdotL, roughness);
 
         return ggx1 * ggx2;
     }
 
     void main(void) {
 
-      vec3 N = normalize(Normal);
-      vec3 V = normalize(camPos - WorldPos);
+      mediump vec3 N = normalize(Normal);
+      mediump vec3 V = normalize(camPos - WorldPos);
 
-      vec3 Lo = vec3(0.0);
+      mediump vec3 Lo = vec3(0.0);
 
       //iterate for multiple lights
       for(int i = 0; i < 1; ++i)
       {
-        vec3 L = normalize(lightPositions[i] - WorldPos);
-        vec3 H = normalize(V + L);
-        float distance    = length(lightPositions[i] - WorldPos);
-        float attenuation = 1.0 / (distance * distance);
-        vec3 radiance     = lightColors[i] * attenuation;
+        mediump vec3 L = normalize(lightPosition - WorldPos);
+        mediump vec3 H = normalize(V + L);
+        mediump float distance    = length(lightPosition - WorldPos);
+        mediump float attenuation = 1.0 / (distance * distance);
+        mediump vec3 radiance     = lightColor * attenuation;
 
 
         //find three components responsible for specular output
 
         //fresnel
         //for dielectrics low value of base refelectivity
-        vec3 F0 = vec3(0.04);
+        mediump vec3 F0 = vec3(0.04);
         F0      = mix(F0, albedo, metallic);
-        vec3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
+        mediump vec3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
         //normal distribution
-        float NDF = DistributionGGX(N, H, roughness);
+        mediump float NDF = DistributionGGX(N, H, roughness);
 
         //geometric occlusion
-        float G   = GeometrySmith(N, V, L, roughness);
+        mediump float G   = GeometrySmith(N, V, L, roughness);
 
-        vec3 numerator    = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-        vec3 specular     = numerator / max(denominator, 0.001);
+        mediump vec3 numerator    = NDF * G * F;
+        mediump float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+        mediump vec3 specular     = numerator / max(denominator, 0.001);
 
-        vec3 kS = F;
-        vec3 kD = vec3(1.0) - kS;
+        mediump vec3 kS = F;
+        mediump vec3 kD = vec3(1.0) - kS;
 
         kD *= 1.0 - metallic;
 
-        const float PI = 3.14159265359;
-
-        float NdotL = max(dot(N, L), 0.0);
+        mediump float NdotL = max(dot(N, L), 0.0);
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
       }
 
-      vec3 ambient = vec3(0.03) * albedo * ao;
-      vec3 color = ambient + Lo;
+      mediump vec3 ambient = vec3(0.03) * albedo * ao;
+      mediump vec3 color = ambient + Lo;
 
       color = color / (color + vec3(1.0));
       color = pow(color, vec3(1.0/2.2));
@@ -184,10 +184,10 @@ function main() {
       vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
     },
     uniformLocations: {
-      lightPosition: gl.getUniformLocation(shaderSource, 'lightPosition'),
-      lightColor: gl.getUniformLocation(shaderSource, 'lightColor'),
-      albedo: gl.getUniformLocation(shaderSource, 'albedo'),
-      ao: gl.getUniformLocation(shaderSource, 'ao'),
+      lightPosition: gl.getUniformLocation(shaderProgram, 'lightPosition'),
+      lightColor: gl.getUniformLocation(shaderProgram, 'lightColor'),
+      albedo: gl.getUniformLocation(shaderProgram, 'albedo'),
+      ao: gl.getUniformLocation(shaderProgram, 'ao'),
       roughness: gl.getUniformLocation(shaderProgram, 'roughness'),
       metallic: gl.getUniformLocation(shaderProgram, 'metallic'),
       cameraPosition: gl.getUniformLocation(shaderProgram, 'camPos'),
@@ -226,10 +226,10 @@ function initBuffers(gl) {
 
   const normalBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.normals),
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.vertexNormals),
               gl.STATIC_DRAW);
 
-  console.log("normals: ", mesh.normals);
+  console.log("normals: ", mesh.vertexNormals);
 
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -285,7 +285,7 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 
   mat4.translate(modelViewMatrix,     // destination matrix
                  modelViewMatrix,     // matrix to translate
-                 [-0.0, 0.0, -10.0]);  // amount to translate
+                 [-0.0, 0.0, -5.0]);  // amount to translate
 
   const normalMatrix = mat4.create();
   mat4.invert(normalMatrix, modelViewMatrix);
@@ -338,13 +338,13 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
   // Set the shader uniforms
 
 
-  gl.uniform3fv(programInfo.uniformLocations.lightPosition, 1, lightPosition);
-  gl.uniform3fv(programInfo.uniformLocations.lightColor, 1, lightColor);
-  gl.uniform3fv(programInfo.uniformLocations.albedo, 1, albedo);
+  gl.uniform3f(programInfo.uniformLocations.lightPosition, lightPosition[0], lightPosition[1], lightPosition[2]);
+  gl.uniform3f(programInfo.uniformLocations.lightColor, lightColor[0], lightColor[1], lightColor[2] );
+  gl.uniform3f(programInfo.uniformLocations.albedo, albedo[0], albedo[1], albedo[2] );
   gl.uniform1f(programInfo.uniformLocations.ao, ao);
   gl.uniform1f(programInfo.uniformLocations.metallic, metallic);
   gl.uniform1f(programInfo.uniformLocations.roughness, roughness);
-  gl.uniform3fv( programInfo.uniformLocations.cameraPosition, 1, camPos);
+  gl.uniform3f( programInfo.uniformLocations.cameraPosition, camPos[0],  camPos[1],  camPos[2]);
 
   gl.uniformMatrix4fv(
     programInfo.uniformLocations.normalMatrix,
