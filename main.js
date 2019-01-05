@@ -4,12 +4,12 @@ var mesh = {};
 
 
 var camPos = vec3.create();
-var metallic = 1.0;
-var roughness = 0.0;
-var lightPosition = vec3.fromValues(0, 0.5, 5);
-var lightColor = vec3.fromValues(0, 1.0, 0);
-var ao = 1.0;
-var albedo = vec3.fromValues(1.0, 1.0, 1.0);
+var metallic = 0.5;
+var roughness = 0.5;
+var lightPosition = vec3.fromValues(0.3, 0.5, -3);
+var lightColor = vec3.fromValues(1.0, 1.0, 1.0);
+var ao = 0.3;
+var albedo = vec3.fromValues(1.0, 0.0, 0.0);
 
 window.onload = function() {
     var sphModel = document.getElementById('sphereobj').innerHTML;
@@ -122,8 +122,8 @@ function main() {
       mediump vec3 Lo = vec3(0.0);
 
       //iterate for multiple lights
-      for(int i = 0; i < 1; ++i)
-      {
+      //for(int i = 0; i < 1; ++i)
+      // {
         mediump vec3 L = normalize(lightPosition - WorldPos);
         mediump vec3 H = normalize(V + L);
         mediump float distance    = length(lightPosition - WorldPos);
@@ -155,10 +155,10 @@ function main() {
         kD *= 1.0 - metallic;
 
         mediump float NdotL = max(dot(N, L), 0.0);
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-      }
+        Lo = (kD * albedo / PI + specular) * radiance * NdotL;
+      // }
 
-      mediump vec3 ambient = vec3(0.03) * albedo * ao;
+      mediump vec3 ambient = 0.03 * albedo * ao;
       mediump vec3 color = ambient + Lo;
 
       color = color / (color + vec3(1.0));
