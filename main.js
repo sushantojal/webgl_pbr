@@ -25,6 +25,10 @@ var FizzyText = function() {
 
 
 window.onload = function() {
+
+    canvas = document.getElementById('glcanvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     var sphModel = document.getElementById('sphereobj').innerHTML;
     mesh = new OBJ.Mesh(sphModel);
     main();
@@ -375,8 +379,6 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
   gl.useProgram(programInfo.program);
 
   // Set the shader uniforms
-
-
   gl.uniform3f(programInfo.uniformLocations.lightPosition, lightPosition[0], lightPosition[1], lightPosition[2]);
   gl.uniform3f(programInfo.uniformLocations.lightColor, lightColor[0], lightColor[1], lightColor[2] );
   gl.uniform3f(programInfo.uniformLocations.albedo, albedo[0], albedo[1], albedo[2] );
