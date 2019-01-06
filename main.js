@@ -4,19 +4,59 @@ var mesh = {};
 
 
 var camPos = vec3.create();
-var metallic = 0.5;
-var roughness = 0.5;
+var metallic = 0.8;
+var roughness = 0.7;
 var lightPosition = vec3.fromValues(0.3, 0.5, -3);
 var lightColor = vec3.fromValues(1.0, 1.0, 1.0);
 var ao = 0.3;
 var albedo = vec3.fromValues(1.0, 0.0, 0.0);
 
+var controls;
+
+var FizzyText = function() {
+  this.metallic = metallic;
+  this.roughness = roughness;
+  this.lightColor= [255, 255, 255];
+  this.albedo = [255, 0, 0];
+  this.ambientComponent = ao;
+  this.lightPositionX = 0.3;
+};
+
+
+
 window.onload = function() {
     var sphModel = document.getElementById('sphereobj').innerHTML;
     mesh = new OBJ.Mesh(sphModel);
-    console.log("vertices: ", mesh.vertices);
     main();
+
+    controls = new FizzyText();
+    var gui = new dat.GUI();
+    var matProps = gui.addFolder('Material')
+    matProps.add(controls, 'metallic', 0, 1).onChange(setProps);
+    matProps.add(controls, 'roughness', 0, 1).onChange(setProps);
+    gui.addColor(controls, 'lightColor').onChange(setProps);
+    gui.addColor(controls, 'albedo').onChange(setProps);
+    gui.add(controls, 'ambientComponent', 0, 1).onChange(setProps);
+    gui.add(controls, 'lightPositionX', -1, 1).onChange(setProps);
+
 };
+
+function setProps() {
+  metallic = controls.metallic;
+  roughness = controls.roughness;
+  lightColor[0] = controls.lightColor[0]/255;
+  lightColor[1] = controls.lightColor[1]/255;
+  lightColor[2] = controls.lightColor[2]/255;
+
+  albedo[0] = controls.albedo[0]/255;
+  albedo[1] = controls.albedo[1]/255;
+  albedo[2] = controls.albedo[2]/255;
+
+  ao = controls.ambientComponent;
+  lightPosition[0] = controls.lightPositionX;
+}
+
+
 
 function main() {
   const canvas = document.querySelector('#glcanvas');
@@ -229,8 +269,6 @@ function initBuffers(gl) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.vertexNormals),
               gl.STATIC_DRAW);
 
-  console.log("normals: ", mesh.vertexNormals);
-
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(mesh.indices), gl.STATIC_DRAW);
@@ -246,6 +284,7 @@ function initBuffers(gl) {
 // Draw the scene.
 //
 function drawScene(gl, programInfo, buffers, deltaTime) {
+
   gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
   gl.clearDepth(1.0);                 // Clear everything
   gl.enable(gl.DEPTH_TEST);           // Enable depth testing
